@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Experiment (Automated)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.07);
+      --text: #e9eefc;
+      --muted: rgba(233,238,252,0.75);
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,0.25), transparent 60%),
+                  radial-gradient(1000px 600px at 80% 20%, rgba(61,220,151,0.18), transparent 55%),
+                  radial-gradient(900px 600px at 40% 90%, rgba(255,107,107,0.10), transparent 60%),
+                  var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+    .app{
+      width: min(980px, 100%);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow: hidden;
+    }
+    header{
+      padding: 18px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      gap: 16px;
+    }
+    header .title{display:flex; flex-direction:column; gap:2px;}
+    header h1{margin:0; font-size:18px; letter-spacing:0.2px;}
+    header .sub{margin:0; font-size:12px; color: var(--muted);}
+    header .pill{
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    main{ padding:24px; min-height: 520px; }
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .row{ display:flex; gap:14px; flex-wrap:wrap; }
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight: 650;
+      letter-spacing:0.2px;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.20);}
+    .btn.primary{ background: rgba(122,162,255,0.22); border-color: rgba(122,162,255,0.35);}
+    .btn.danger{ background: rgba(255,107,107,0.20); border-color: rgba(255,107,107,0.32);}
+    .btn.ok{ background: rgba(61,220,151,0.18); border-color: rgba(61,220,151,0.32);}
+    .muted{ color: var(--muted); }
+    .big{ font-size: 34px; letter-spacing: 0.3px; margin: 0 0 10px 0; }
+    .timer{
+      font-family: var(--mono);
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.20);
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .bar{ width: 220px; height: 8px; background: rgba(255,255,255,0.10); border-radius:999px; overflow:hidden; }
+    .bar > div{ height:100%; width:0%; background: rgba(122,162,255,0.85); }
+    .gridWords{
+      margin-top: 18px;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px 16px;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+    .gridWords .w{
+      color: var(--text);
+    }
+    .gridWords .w.black{
+      color: rgba(0,0,0,0.95);
+      border-color: rgba(0,0,0,0.25);
+      background: rgba(255,255,255,0.85);
+    }
+    .gridWords .w.red{
+      color: rgba(255,107,107,0.95);
+      border-color: rgba(255,107,107,0.35);
+      background: rgba(255,107,107,0.10);
+    }
+    .gridWords .w{
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      text-align:center;
+    }
+    textarea{
+      width:100%;
+      min-height: 210px;
+      resize: vertical;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+    }
+    input[type="text"]{
+      width: min(320px, 100%);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      color: var(--text);
+      font-size: 15px;
+      outline:none;
+    }
+    .notice{
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,0.20);
+      background: rgba(0,0,0,0.14);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .twoCol{ display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    @media (max-width: 860px){ .twoCol{ grid-template-columns: 1fr; } }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+    }
+    .smallTable{
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .smallTable th, .smallTable td{
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      padding: 8px 6px;
+      text-align:left;
+    }
+    .smallTable th{ color: rgba(233,238,252,0.9); font-weight: 650; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Memory Experiment (Automated)</h1>
+        <p class="sub">Study: 30s → Recall: 60s • Runs start-to-finish without the researcher clicking anything mid-task</p>
+      </div>
+      <div class="pill" id="statusPill">Idle</div>
+    </header>
+    <main>
+      <div class="card" id="screen"></div>
+    </main>
+  </div>
+
+<script>
+const EXP = [{"name": "List 1 (Standard Case)", "duration_study": 60, "duration_recall": 60, "words": ["Guitar", "Teacup", "River", "Blanket", "Pencil", "Cotton", "Jacket", "Ladder", "Cloud", "Rocket", "Tiger", "Ruler", "Leaf", "Phone", "Cookie", "Rabbit", "Wrench", "School", "Bottle", "Island"]}, {"name": "List 2 (Mixed Case)", "duration_study": 60, "duration_recall": 60, "words": ["sPOoN", "tABlE", "oCEaN", "BROom", "mIRrOr", "dUcK", "baLloON", "lAMp", "sUNrIsE", "fLoWEr", "frAME", "cRanE", "jOkER", "lIbRarY", "pILloW", "oRaNGe", "wINtEr", "bRIDge", "sILveR", "jUNgLe"]}, {"name": "List 3 (Standard Case)", "duration_study": 60, "duration_recall": 60, "words": ["Cheese", "Bicycle", "Popcorn", "Wheel", "Lantern", "Subway", "Turtle", "Island", "Jacket", "Tomato", "Train", "Garden", "Basket", "Storm", "Lake", "Printer", "Mouse", "Camera", "Shoe", "Candle"]}, {"name": "List 4 (Mixed Case)", "duration_study": 60, "duration_recall": 60, "words": ["bEaR", "wInDow", "GRaSs", "apPlE", "tRUcK", "ClOcK", "bANaNa", "lAdDer", "eNgINe", "cHaIR", "sHeEp", "caRPeT", "pLAnT", "cEreAL", "sUNSet", "KniFE", "gOlD", "heLMeT", "lUNcH", "fLoUr"]}];
+const INSTRUCTIONS = "Hi, we are conducting a class memory experiment. You will see a list of words displayed for 60 seconds, and your task is to try to remember as many words as possible. After the study phase ends, there will be a short pause, and then you will have 60 seconds to type as many words as you can remember; the order does not matter. This is not a test of intelligence, just a memory task. Please focus during the study phase and try your best during recall. Once time is up, we will collect your responses. Thank you for participating, your results will be used only for our class lab report and will be deleted after the course is completed.";
+const CONSENT = "We are students in Introductory Psychology. We are asking for your consent to participate in a brief memory study that is part of our course.\n\nYour data will be anonymous so that your identity cannot be revealed. No-one will be able to know your name or scores. If you volunteer to be in the study your results will be referred to by a numeric code provided by the student researcher. You may quit the study at any time if you are at all uncomfortable.\n\n1. You will be asked to study some lists of words, images, or similar materials and then you will be asked to remember them until the end of the study.\n2. You will be informed of the specific predictions after the study is completed, and if you have any questions they will be gladly answered.\n3. There are no known risks or expected benefits of participating in this study.\n4. There is no payment for your involvement, and you can quit the study at any time.";
+
+let state = {
+  participantCode: "",
+  startedAtISO: null,
+  results: [],
+  currentTrial: -1,
+  timer: null,
+  t0: null,
+  remaining: null,
+};
+
+function setPill(text){
+  document.getElementById("statusPill").textContent = text;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(html){
+  document.getElementById("screen").innerHTML = html;
+}
+
+function nowISO(){ return new Date().toISOString(); }
+
+function stopTimer(){
+  if (state.timer){
+    clearInterval(state.timer);
+    state.timer = null;
+  }
+}
+
+function startCountdown(seconds, onTick, onDone){
+  stopTimer();
+  state.t0 = Date.now();
+  state.remaining = seconds;
+  onTick(state.remaining, 0);
+  state.timer = setInterval(() => {
+    const elapsed = (Date.now() - state.t0) / 1000.0;
+    const remaining = Math.max(0, Math.ceil(seconds - elapsed));
+    const progress = Math.min(1, elapsed / seconds);
+    if (remaining !== state.remaining){
+      state.remaining = remaining;
+      onTick(remaining, progress);
+    }
+    if (elapsed >= seconds){
+      stopTimer();
+      onDone();
+    }
+  }, 50);
+}
+
+function normalizeWord(w){ return w.trim().toLowerCase(); }
+
+function scoreRecall(recallText, targetWords){
+  const raw = recallText || "";
+  const tokens = raw.split(/[^A-Za-z]+/).map(t => t.trim()).filter(Boolean);
+  const recalledNorm = tokens.map(normalizeWord);
+  const targetNorm = targetWords.map(normalizeWord);
+
+  const targetSet = new Set(targetNorm);
+  const recalledSet = new Set(recalledNorm);
+
+  let correct = 0, intrusions = 0, omissions = 0;
+  let correctWords = [], intrusionWords = [], omissionWords = [];
+
+  for (const w of recalledSet){
+    if (targetSet.has(w)) { correct += 1; correctWords.push(w); }
+    else { intrusions += 1; intrusionWords.push(w); }
+  }
+  for (const w of targetSet){
+    if (!recalledSet.has(w)) { omissions += 1; omissionWords.push(w); }
+  }
+  correctWords.sort(); intrusionWords.sort(); omissionWords.sort();
+
+  return { tokens, correct, intrusions, omissions, correctWords, intrusionWords, omissionWords };
+}
+
+function welcomeScreen(){
+  setPill("Welcome");
+  render(`
+    <h2 class="big">Welcome</h2>
+    <p class="muted">This is a self-running memory experiment. Once you press <span class="kbd">Start</span>, the task will advance automatically.</p>
+    <div class="notice"><b>Tip:</b> Use a laptop/desktop if possible. If using a phone, rotate to landscape for easier reading.</div>
+    <div style="height: 16px"></div>
+    <button class="btn primary" id="go">Start</button>
+  `);
+  document.getElementById("go").onclick = instructionsScreen;
+}
+
+function instructionsScreen(){
+  setPill("Instructions");
+  render(`
+    <div class="twoCol">
+      <div>
+        <h2 class="big">Instructions</h2>
+        <p class="muted" style="white-space: pre-line;">${escapeHtml(INSTRUCTIONS)}</p>
+        <div class="row" style="margin-top: 16px;">
+          <button class="btn" id="back">Back</button>
+          <button class="btn primary" id="next">Continue</button>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-top: 6px;">What happens</h3>
+        <table class="smallTable">
+          <tr><th>Phase</th><th>Time</th></tr>
+          <tr><td>Study words</td><td>60 seconds</td></tr>
+          <tr><td>Recall</td><td>60 seconds</td></tr>
+          <tr><td>Trials</td><td>${EXP.length}</td></tr>
+        </table>
+        <div class="notice">When recall time ends, your answer is saved automatically. You don’t need to press submit.</div>
+      </div>
+    </div>
+  `);
+  document.getElementById("back").onclick = welcomeScreen;
+  document.getElementById("next").onclick = consentScreen;
+}
+
+function consentScreen(){
+  setPill("Consent");
+  render(`
+    <h2 class="big">Consent</h2>
+    <p class="muted" style="white-space: pre-line;">${escapeHtml(CONSENT)}</p>
+
+    <div style="height: 10px"></div>
+    
+<label class="muted"><b>Participant Code</b></label><br/>
+<select id="code" style="padding:12px 14px;border-radius:14px;background:rgba(0,0,0,0.18);color:white;">
+<option value="">Select your code</option>
+<option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option><option value="A4">A4</option><option value="A5">A5</option><option value="A6">A6</option><option value="A7">A7</option><option value="A8">A8</option><option value="B1">B1</option><option value="B2">B2</option><option value="B3">B3</option><option value="B4">B4</option><option value="B5">B5</option><option value="B6">B6</option><option value="B7">B7</option><option value="B8">B8</option>
+</select>
+<div class="notice">Please select your assigned code.</div>
+
+
+    <div class="row" style="margin-top: 16px;">
+      <button class="btn danger" id="no">I do not consent</button>
+      <button class="btn ok" id="yes">I consent & begin</button>
+    </div>
+  `);
+
+  document.getElementById("no").onclick = () => {
+    stopTimer();
+    setPill("Exited");
+    render(`
+      <h2 class="big">No problem</h2>
+      <p class="muted">You chose not to participate. You can close this page now.</p>
+      <button class="btn" id="ret">Return to start</button>
+    `);
+    document.getElementById("ret").onclick = welcomeScreen;
+  };
+
+  document.getElementById("yes").onclick = () => {
+    const code = (document.getElementById("code").value || "").trim();
+    if (!code){ alert("Please enter a participant code (any code you choose)."); return; }
+    state.participantCode = code;
+    state.startedAtISO = nowISO();
+    state.results = [];
+    state.currentTrial = -1;
+    nextTrial();
+  };
+}
+
+function pauseScreen(nextTrialIndex){
+  setPill("Pause");
+  render(`
+    <h2 class="big">Get ready</h2>
+    <p class="muted">Next list starts in a moment…</p>
+    <div class="timer">
+      <span><b id="t">2</b>s</span>
+      <div class="bar"><div id="bar"></div></div>
+    </div>
+  `);
+  startCountdown(2,
+    (remaining, progress) => {
+      document.getElementById("t").textContent = remaining;
+      document.getElementById("bar").style.width = `${Math.round(progress*100)}%`;
+    },
+    () => studyScreen(nextTrialIndex)
+  );
+}
+
+function studyScreen(trialIndex){
+  const trial = EXP[trialIndex];
+  setPill(`Study • Trial ${trialIndex+1}/${EXP.length}`);
+  const isRedTrial = (trialIndex >= EXP.length - 2);
+  const isBlackTrial = (trialIndex < 2);
+  const wordsHtml = trial.words.map((w) => {
+    const cls = isRedTrial ? "w red" : (trialIndex < 2 ? "w black" : "w");
+    return `<div class="${cls}">${escapeHtml(w)}</div>`;
+  }).join("");
+  render(`
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <div>
+        <h2 class="big">Study these words</h2>
+        <p class="muted">${escapeHtml(trial.name)} • Focus and try to remember as many as you can.</p>
+      </div>
+      <div class="timer">
+        <span><b id="t">${trial.duration_study}</b>s</span>
+        <div class="bar"><div id="bar"></div></div>
+      </div>
+    </div>
+    <div class="gridWords">${wordsHtml}</div>
+    <div class="notice">The task will automatically move to recall when time is up.</div>
+  `);
+
+  startCountdown(trial.duration_study,
+    (remaining, progress) => {
+      document.getElementById("t").textContent = remaining;
+      document.getElementById("bar").style.width = `${Math.round(progress*100)}%`;
+    },
+    () => recallScreen(trialIndex)
+  );
+}
+
+function recallScreen(trialIndex){
+  const trial = EXP[trialIndex];
+  setPill(`Recall • Trial ${trialIndex+1}/${EXP.length}`);
+  render(`
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <div>
+        <h2 class="big">Recall</h2>
+        <p class="muted">Type as many words as you remember. Order doesn’t matter. Separate words with spaces or new lines.</p>
+      </div>
+      <div class="timer">
+        <span><b id="t">${trial.duration_recall}</b>s</span>
+        <div class="bar"><div id="bar"></div></div>
+      </div>
+    </div>
+    <textarea id="recall" placeholder="Type remembered words here..."></textarea>
+    <div class="row" style="margin-top: 14px; justify-content: space-between; align-items: center;">
+      <div class="muted">Auto-saves when the timer ends.</div>
+      <button class="btn" id="finishEarly">Finish early</button>
+    </div>
+  `);
+
+  const finish = () => {
+    stopTimer();
+    const txt = document.getElementById("recall").value || "";
+    const scored = scoreRecall(txt, trial.words);
+    state.results.push({
+      participant_code: state.participantCode,
+      started_at_iso: state.startedAtISO,
+      ended_at_iso: nowISO(),
+      trial_number: trialIndex + 1,
+      trial_name: trial.name,
+      study_seconds: trial.duration_study,
+      recall_seconds: trial.duration_recall,
+      targets: trial.words.join("|"),
+      recall_raw: txt.replace(/\r\n/g, "\n"),
+      recalled_tokens: scored.tokens.join("|"),
+      correct_unique: scored.correct,
+      intrusions_unique: scored.intrusions,
+      omissions_unique: scored.omissions,
+      correct_words: scored.correctWords.join("|"),
+      intrusion_words: scored.intrusionWords.join("|"),
+      omission_words: scored.omissionWords.join("|"),
+    });
+    nextTrial();
+  };
+
+  document.getElementById("finishEarly").onclick = finish;
+
+  startCountdown(trial.duration_recall,
+    (remaining, progress) => {
+      document.getElementById("t").textContent = remaining;
+      document.getElementById("bar").style.width = `${Math.round(progress*100)}%`;
+    },
+    finish
+  );
+}
+
+function nextTrial(){
+  state.currentTrial += 1;
+  if (state.currentTrial >= EXP.length){ endScreen(); return; }
+  pauseScreen(state.currentTrial);
+}
+
+function toCSV(rows){
+  const cols = [
+    "participant_code","started_at_iso","ended_at_iso",
+    "trial_number","trial_name","study_seconds","recall_seconds",
+    "targets","recall_raw","recalled_tokens",
+    "correct_unique","intrusions_unique","omissions_unique",
+    "correct_words","intrusion_words","omission_words"
+  ];
+  const esc = (v) => {
+    const s = (v === null || v === undefined) ? "" : String(v);
+    const q = s.replace(/"/g,'""');
+    return `"${q}"`;
+  };
+  const lines = [];
+  lines.push(cols.join(","));
+  for (const r of rows){
+    lines.push(cols.map(c => esc(r[c])).join(","));
+  }
+  return lines.join("\n");
+}
+
+function download(filename, text){
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 0);
+}
+
+function endScreen(){
+  setPill("Complete");
+  const csv = toCSV(state.results);
+  const fn = `memory_experiment_${state.participantCode}_${new Date().toISOString().slice(0,10)}.csv`;
+  render(`
+    <h2 class="big">Thank you</h2>
+    <p class="muted">You’ve completed the experiment. Your results are ready.</p>
+    <div class="row" style="margin-top: 14px;">
+      <button class="btn primary" id="dl">Download results (CSV)</button>
+      <button class="btn" id="restart">Restart</button>
+    </div>
+    <div class="notice">
+      The CSV downloads to your device. If your class wants a single combined dataset, each participant can upload their CSV to a shared folder or submit it on your LMS.
+    </div>
+    <h3 style="margin-top: 18px;">Quick summary</h3>
+    <table class="smallTable" id="sum"></table>
+  `);
+
+  document.getElementById("dl").onclick = () => download(fn, csv);
+  document.getElementById("restart").onclick = () => {
+    stopTimer();
+    state = { participantCode:"", startedAtISO:null, results:[], currentTrial:-1, timer:null, t0:null, remaining:null };
+    welcomeScreen();
+  };
+
+  const sum = document.getElementById("sum");
+  sum.innerHTML = `<tr><th>Trial</th><th>Correct</th><th>Intrusions</th><th>Omissions</th></tr>` +
+    state.results.map(r => `<tr><td>${escapeHtml(r.trial_name)}</td><td>${r.correct_unique}</td><td>${r.intrusions_unique}</td><td>${r.omissions_unique}</td></tr>`).join("");
+
+  // auto-download to reduce manual steps
+  setTimeout(() => download(fn, csv), 400);
+}
+
+// boot
+welcomeScreen();
+</script>
+</body>
+</html>
